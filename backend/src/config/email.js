@@ -47,8 +47,3 @@ const sendResetPasswordEmail = async (to, name, resetUrl) => {
 };
 
 module.exports = { sendOTPEmail, sendResetPasswordEmail };
-```
-
-**4. เพิ่ม Railway Variable:**
-```
-RESEND_API_KEY=re_xxxxxxxxxxxxxxxxx
