@@ -7,7 +7,7 @@ const sendOTPEmail = async (to, name, code, type = "verify") => {
   const desc = isVerify ? "Enter this code to verify your email address." : "Enter this code to complete your login.";
 
   await axios.post("https://api.brevo.com/v3/smtp/email", {
-    sender: { email: "a47a09001@smtp-brevo.com", name: "SecureAuth" },
+    sender: { email: "dew201102@gmail.com", name: "SecureAuth" },
     to: [{ email: to, name }],
     subject,
     htmlContent: `
