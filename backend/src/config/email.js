@@ -1,13 +1,5 @@
-const nodemailer = require("nodemailer");
-
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  family: 4,
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
-  },
-});
+const { Resend } = require("resend");
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendOTPEmail = async (to, name, code, type = "verify") => {
   const isVerify = type === "verify";
@@ -15,8 +7,8 @@ const sendOTPEmail = async (to, name, code, type = "verify") => {
   const title = isVerify ? "Verify Your Email" : "Two-Factor Authentication";
   const desc = isVerify ? "Enter this code to verify your email address." : "Enter this code to complete your login.";
 
-  await transporter.sendMail({
-    from: `"SecureAuth" <${process.env.GMAIL_USER}>`,
+  await resend.emails.send({
+    from: "SecureAuth <onboarding@resend.dev>",
     to,
     subject,
     html: `
@@ -36,8 +28,8 @@ const sendOTPEmail = async (to, name, code, type = "verify") => {
 };
 
 const sendResetPasswordEmail = async (to, name, resetUrl) => {
-  await transporter.sendMail({
-    from: `"SecureAuth" <${process.env.GMAIL_USER}>`,
+  await resend.emails.send({
+    from: "SecureAuth <onboarding@resend.dev>",
     to,
     subject: "Reset your password — SecureAuth",
     html: `
@@ -55,3 +47,8 @@ const sendResetPasswordEmail = async (to, name, resetUrl) => {
 };
 
 module.exports = { sendOTPEmail, sendResetPasswordEmail };
+```
+
+**4. เพิ่ม Railway Variable:**
+```
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxx
