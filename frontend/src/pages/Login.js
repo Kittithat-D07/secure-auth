@@ -13,8 +13,9 @@ export default function Login() {
     e.preventDefault();
     setLoading(true); setError("");
     try {
-      await api.post("/auth/login", { email, password });
-      navigate("/otp", { state: { email, type: "2fa" } });
+      const res = await api.post("/auth/login", { email, password });
+      const devOTP = res.data?.data?.devOTP;
+      navigate("/otp", { state: { email, type: "2fa", devOTP } });
     } catch (err) {
       setError(err.response?.data?.message || "Login failed. Please try again.");
     } finally { setLoading(false); }
