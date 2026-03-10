@@ -1,9 +1,9 @@
 const Brevo = require('@getbrevo/brevo');
 
-// แก้การเรียก Instance ให้ดึงมาจากการเรียกคลาสโดยตรง
+// แก้การเรียก Instance ให้ดึงมาจาก Property .TransactionalEmailsApi
 const apiInstance = new Brevo.TransactionalEmailsApi();
 
-// ตั้งค่า API Key ผ่าน apiInstance โดยตรง
+// วิธีการตั้งค่า API Key ที่ถูกต้องสำหรับเวอร์ชันปัจจุบัน
 apiInstance.setApiKey(Brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
 
 const sendOTPEmail = async (to, name, code, type = "verify") => {
@@ -17,7 +17,7 @@ const sendOTPEmail = async (to, name, code, type = "verify") => {
   const sendSmtpEmail = new Brevo.SendSmtpEmail();
 
   sendSmtpEmail.subject = subject;
-  sendSmtpEmail.sender = { "name": "SecureAuth", "email": "dew201102@gmail.com" }; // เมลที่คุณสมัคร Brevo
+  sendSmtpEmail.sender = { "name": "SecureAuth", "email": "dew201102@gmail.com" }; // เมลที่ใช้สมัคร Brevo
   sendSmtpEmail.to = [{ "email": to, "name": name }];
   
   sendSmtpEmail.htmlContent = `
@@ -28,7 +28,7 @@ const sendOTPEmail = async (to, name, code, type = "verify") => {
       <div style="background:#0f0f0f;padding:40px 20px;text-align:center">
         <div style="background:#1a1a2e;border-radius:20px;padding:40px;display:inline-block;border:1px solid #2a2a4a;max-width:480px">
           <h2 style="color:#e2e8f0;margin-top:0">${title}</h2>
-          <p style="color:#64748b">Hi <strong>${name}</strong>,</p>
+          <p style="color:#64748b;margin-bottom:4px">Hi <strong>${name}</strong>,</p>
           <p style="color:#64748b">${desc}</p>
           <div style="background:#0f172a;border:2px solid #4f46e5;padding:20px;border-radius:16px;margin:20px 0">
             <span style="font-size:32px;letter-spacing:10px;color:#818cf8;font-weight:bold">${code}</span>
@@ -44,7 +44,6 @@ const sendOTPEmail = async (to, name, code, type = "verify") => {
     const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
     console.log(`✅ Brevo: Email sent successfully! MessageId: ${data.body.messageId}`);
   } catch (error) {
-    // ดึง Error Message ที่ละเอียดขึ้นจาก Brevo
     const errorMsg = error.response ? JSON.stringify(error.response.body) : error.message;
     console.error("❌ Brevo Error:", errorMsg);
   }
@@ -64,7 +63,7 @@ const sendResetPasswordEmail = async (to, name, resetUrl) => {
       <div style="margin: 30px 0;">
         <a href="${resetUrl}" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);color:white;padding:14px 28px;text-decoration:none;border-radius:10px;font-weight:bold;display:inline-block;">Reset Password</a>
       </div>
-      <p style="font-size:12px;color:#64748b;">This link will expire in 1 hour. If you didn't request this, please ignore.</p>
+      <p style="font-size:12px;color:#64748b;">If you didn't request this, please ignore.</p>
     </div>
   `;
 
