@@ -43,18 +43,14 @@ const logActivity = async (userId, action, req) => {
 };
 
 const createAndSendOTP = async (email, name, type) => {
-  // 1. ลบ OTP เก่า
   await prisma.oTP.deleteMany({ where: { email, type } });
-  
-  // 2. สร้าง OTP ใหม่ลง Database
   const code = generateOTP();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
   await prisma.oTP.create({ data: { email, code, type, expiresAt } });
-  
-  // 3. ส่ง Email แบบ Non-blocking (เอา await ออกเพื่อให้ API ตอบกลับทันที)
-  sendOTPEmail(email, name, code, type).catch(err => 
+  sendOTPEmail(email, name, code, type).catch(err =>
     console.error("📧 Background Email Error:", err.message)
   );
+  return code; // ← return code กลับมา
 };
 
 // ── controllers ──────────────────────────────────────────────────────────────
@@ -72,14 +68,13 @@ const register = async (req, res, next) => {
       select: { id: true, email: true, name: true },
     });
 
-    // เรียกฟังก์ชันที่แก้ใหม่ (ไม่รอส่งเมลเสร็จ)
-    await createAndSendOTP(email, name, "verify");
+    const otpCode = await createAndSendOTP(email, name, "verify");
     await logActivity(user.id, "REGISTER", req);
 
     res.status(201).json({
       success: true,
       message: "Registration successful! Check your email for OTP.",
-      data: { email },
+      data: { email, devOTP: otpCode },
     });
   } catch (error) {
     next(error);
@@ -107,9 +102,9 @@ const resendOTP = async (req, res, next) => {
     const { email, type } = req.body;
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
-    
-    await createAndSendOTP(email, user.name, type);
-    res.json({ success: true, message: "OTP resent successfully" });
+
+    const otpCode = await createAndSendOTP(email, user.name, type);
+    res.json({ success: true, message: "OTP resent successfully", data: { devOTP: otpCode } });
   } catch (error) {
     next(error);
   }
@@ -133,8 +128,12 @@ const login = async (req, res, next) => {
     if (!user.isEmailVerified)
       return res.status(403).json({ success: false, message: "Please verify your email first" });
 
-    await createAndSendOTP(email, user.name, "2fa");
-    res.json({ success: true, message: "OTP sent to your email.", data: { email, requireOTP: true } });
+    const otpCode = await createAndSendOTP(email, user.name, "2fa");
+    res.json({
+      success: true,
+      message: "OTP sent to your email.",
+      data: { email, requireOTP: true, devOTP: otpCode },
+    });
   } catch (error) {
     next(error);
   }
@@ -182,13 +181,15 @@ const forgotPassword = async (req, res, next) => {
     const emailToken = await prisma.emailToken.create({ data: { email, type: "reset", expiresAt } });
 
     const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${emailToken.token}`;
-    
-    // ส่ง Reset Email แบบ Non-blocking เช่นกัน
-    sendResetPasswordEmail(email, user.name, resetUrl).catch(err => 
+    sendResetPasswordEmail(email, user.name, resetUrl).catch(err =>
       console.error("📧 Password Reset Email Error:", err.message)
     );
 
-    res.json({ success: true, message: "If this email exists, a reset link has been sent." });
+    res.json({
+      success: true,
+      message: "If this email exists, a reset link has been sent.",
+      data: { devResetUrl: resetUrl }, // ← return reset link
+    });
   } catch (error) {
     next(error);
   }
