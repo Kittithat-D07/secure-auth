@@ -6,9 +6,9 @@ const options = {
     info: {
       title: "SecureAuth API",
       version: "1.0.0",
-      description: "Full-stack Authentication API with JWT, OTP 2FA, Role-based Access Control",
+      description: "Full-stack JWT Authentication API — Portfolio Project",
     },
-    servers: [{ url: "/api", description: "API Server" }],
+    servers: [{ url: "/api" }],
     components: {
       securitySchemes: {
         bearerAuth: { type: "http", scheme: "bearer", bearerFormat: "JWT" },

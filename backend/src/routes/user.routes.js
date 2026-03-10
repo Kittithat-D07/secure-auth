@@ -11,20 +11,19 @@ router.use(verifyToken);
  * @swagger
  * tags:
  *   name: User
- *   description: User profile endpoints
+ *   description: User profile endpoints (requires auth)
  */
 
 /**
  * @swagger
  * /users/profile:
  *   get:
- *     summary: Get profile
+ *     summary: Get my profile
  *     tags: [User]
  *     security:
  *       - bearerAuth: []
  *     responses:
- *       200:
- *         description: Profile data
+ *       200: { description: Profile data }
  */
 router.get("/profile", async (req, res, next) => {
   try {
@@ -40,23 +39,32 @@ router.get("/profile", async (req, res, next) => {
  * @swagger
  * /users/profile:
  *   patch:
- *     summary: Update profile
+ *     summary: Update my profile name
  *     tags: [User]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name: { type: string }
  *     responses:
- *       200:
- *         description: Profile updated
+ *       200: { description: Profile updated }
  */
 router.patch("/profile", async (req, res, next) => {
   try {
     const { name } = req.body;
+    if (!name || name.trim().length < 2)
+      return res.status(400).json({ success: false, message: "Name must be at least 2 characters" });
     const user = await prisma.user.update({
       where: { id: req.user.id },
-      data: { name },
+      data: { name: name.trim() },
       select: { id: true, email: true, name: true, role: true, avatar: true },
     });
-    res.json({ success: true, message: "Profile updated", data: user });
+    res.json({ success: true, message: "Profile updated successfully", data: user });
   } catch (error) { next(error); }
 });
 
@@ -68,18 +76,29 @@ router.patch("/profile", async (req, res, next) => {
  *     tags: [User]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               currentPassword: { type: string }
+ *               newPassword: { type: string }
  *     responses:
- *       200:
- *         description: Password changed
+ *       200: { description: Password changed }
  */
 router.patch("/change-password", async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
-    if (!user.password) return res.status(400).json({ success: false, message: "Account uses Google login" });
+    if (!user.password)
+      return res.status(400).json({ success: false, message: "Account uses Google login — no password to change" });
     const isValid = await bcrypt.compare(currentPassword, user.password);
-    if (!isValid) return res.status(401).json({ success: false, message: "Current password is incorrect" });
-    if (newPassword.length < 6) return res.status(400).json({ success: false, message: "New password must be at least 6 characters" });
+    if (!isValid)
+      return res.status(401).json({ success: false, message: "Current password is incorrect" });
+    if (newPassword.length < 6)
+      return res.status(400).json({ success: false, message: "New password must be at least 6 characters" });
     const hashed = await bcrypt.hash(newPassword, 12);
     await prisma.user.update({ where: { id: req.user.id }, data: { password: hashed } });
     res.json({ success: true, message: "Password changed successfully" });

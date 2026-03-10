@@ -1,10 +1,20 @@
 import axios from "axios";
 
+const BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "http://localhost:5000/api",
+  baseURL: BASE_URL,
   withCredentials: true,
 });
 
+// Auto attach access token
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("accessToken");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+// Auto refresh on 401
 api.interceptors.response.use(
   (res) => res,
   async (err) => {
@@ -12,11 +22,7 @@ api.interceptors.response.use(
     if (err.response?.status === 401 && !original._retry) {
       original._retry = true;
       try {
-        const res = await axios.post(
-          `${process.env.REACT_APP_API_URL || "http://localhost:5000/api"}/auth/refresh`,
-          {},
-          { withCredentials: true }
-        );
+        const res = await axios.post(`${BASE_URL}/auth/refresh`, {}, { withCredentials: true });
         const newToken = res.data.data.accessToken;
         localStorage.setItem("accessToken", newToken);
         original.headers.Authorization = `Bearer ${newToken}`;
@@ -29,11 +35,5 @@ api.interceptors.response.use(
     return Promise.reject(err);
   }
 );
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("accessToken");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
 
 export default api;

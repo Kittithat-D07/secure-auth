@@ -1,17 +1,21 @@
+require("dotenv").config();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { OAuth2Client } = require("google-auth-library");
 const { PrismaClient } = require("@prisma/client");
 const redisClient = require("../config/redis");
 const { sendOTPEmail, sendResetPasswordEmail } = require("../config/email");
 
 const prisma = new PrismaClient();
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+// ── helpers ──────────────────────────────────────────────────────────────────
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 const generateAccessToken = (user) =>
-  jwt.sign({ id: user.id, email: user.email, role: user.role }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
+  jwt.sign(
+    { id: user.id, email: user.email, role: user.role },
+    process.env.ACCESS_TOKEN_SECRET,
+    { expiresIn: "15m" }
+  );
 
 const generateRefreshToken = (user) =>
   jwt.sign({ id: user.id }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
@@ -28,7 +32,12 @@ const setRefreshTokenCookie = (res, token) => {
 const logActivity = async (userId, action, req) => {
   try {
     await prisma.activityLog.create({
-      data: { userId, action, ip: req.ip, userAgent: req.headers["user-agent"] },
+      data: {
+        userId,
+        action,
+        ip: req.ip || req.connection?.remoteAddress,
+        userAgent: req.headers["user-agent"],
+      },
     });
   } catch {}
 };
@@ -39,9 +48,9 @@ const createAndSendOTP = async (email, name, type) => {
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
   await prisma.oTP.create({ data: { email, code, type, expiresAt } });
   await sendOTPEmail(email, name, code, type);
-  return code;
 };
 
+// ── controllers ──────────────────────────────────────────────────────────────
 const register = async (req, res, next) => {
   try {
     const { email, password, name } = req.body;
@@ -61,10 +70,12 @@ const register = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      message: "Registration successful. Please check your email for OTP code.",
+      message: "Registration successful! Check your email for OTP.",
       data: { email },
     });
-  } catch (error) { next(error); }
+  } catch (error) {
+    next(error);
+  }
 };
 
 const verifyEmailOTP = async (req, res, next) => {
@@ -76,8 +87,23 @@ const verifyEmailOTP = async (req, res, next) => {
 
     await prisma.user.update({ where: { email }, data: { isEmailVerified: true } });
     await prisma.oTP.deleteMany({ where: { email, type: "verify" } });
+
     res.json({ success: true, message: "Email verified! You can now login." });
-  } catch (error) { next(error); }
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resendOTP = async (req, res, next) => {
+  try {
+    const { email, type } = req.body;
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+    await createAndSendOTP(email, user.name, type);
+    res.json({ success: true, message: "OTP resent successfully" });
+  } catch (error) {
+    next(error);
+  }
 };
 
 const login = async (req, res, next) => {
@@ -91,13 +117,18 @@ const login = async (req, res, next) => {
       return res.status(401).json({ success: false, message: "Invalid credentials" });
 
     const isValid = await bcrypt.compare(password, user.password);
-    if (!isValid) return res.status(401).json({ success: false, message: "Invalid credentials" });
-    if (!user.isActive) return res.status(403).json({ success: false, message: "Account is disabled" });
-    if (!user.isEmailVerified) return res.status(403).json({ success: false, message: "Please verify your email first" });
+    if (!isValid)
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
+    if (!user.isActive)
+      return res.status(403).json({ success: false, message: "Your account has been disabled" });
+    if (!user.isEmailVerified)
+      return res.status(403).json({ success: false, message: "Please verify your email first" });
 
     await createAndSendOTP(email, user.name, "2fa");
     res.json({ success: true, message: "OTP sent to your email.", data: { email, requireOTP: true } });
-  } catch (error) { next(error); }
+  } catch (error) {
+    next(error);
+  }
 };
 
 const verify2FA = async (req, res, next) => {
@@ -109,6 +140,7 @@ const verify2FA = async (req, res, next) => {
 
     await prisma.oTP.deleteMany({ where: { email, type: "2fa" } });
     const user = await prisma.user.findUnique({ where: { email } });
+
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -119,26 +151,23 @@ const verify2FA = async (req, res, next) => {
 
     res.json({
       success: true,
-      data: { accessToken, user: { id: user.id, email: user.email, name: user.name, role: user.role, avatar: user.avatar } },
+      data: {
+        accessToken,
+        user: { id: user.id, email: user.email, name: user.name, role: user.role, avatar: user.avatar },
+      },
     });
-  } catch (error) { next(error); }
-};
-
-const resendOTP = async (req, res, next) => {
-  try {
-    const { email, type } = req.body;
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) return res.status(404).json({ success: false, message: "User not found" });
-    await createAndSendOTP(email, user.name, type);
-    res.json({ success: true, message: "OTP resent successfully" });
-  } catch (error) { next(error); }
+  } catch (error) {
+    next(error);
+  }
 };
 
 const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) return res.json({ success: true, message: "If this email exists, a reset link has been sent." });
+    // Always return success to prevent email enumeration
+    if (!user)
+      return res.json({ success: true, message: "If this email exists, a reset link has been sent." });
 
     await prisma.emailToken.deleteMany({ where: { email, type: "reset" } });
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
@@ -146,8 +175,11 @@ const forgotPassword = async (req, res, next) => {
 
     const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${emailToken.token}`;
     await sendResetPasswordEmail(email, user.name, resetUrl);
+
     res.json({ success: true, message: "If this email exists, a reset link has been sent." });
-  } catch (error) { next(error); }
+  } catch (error) {
+    next(error);
+  }
 };
 
 const resetPassword = async (req, res, next) => {
@@ -161,19 +193,29 @@ const resetPassword = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "Invalid or expired reset link" });
 
     const hashed = await bcrypt.hash(password, 12);
-    const user = await prisma.user.update({ where: { email: emailToken.email }, data: { password: hashed } });
+    const user = await prisma.user.update({
+      where: { email: emailToken.email },
+      data: { password: hashed },
+    });
     await prisma.emailToken.delete({ where: { token } });
     await logActivity(user.id, "PASSWORD_RESET", req);
-    res.json({ success: true, message: "Password reset successfully!" });
-  } catch (error) { next(error); }
+
+    res.json({ success: true, message: "Password reset successfully! You can now login." });
+  } catch (error) {
+    next(error);
+  }
 };
 
 const refreshAccessToken = async (req, res, next) => {
   try {
     const token = req.cookies?.refreshToken;
-    if (!token) return res.status(401).json({ success: false, message: "Refresh token required" });
+    if (!token)
+      return res.status(401).json({ success: false, message: "Refresh token required" });
 
-    const storedToken = await prisma.refreshToken.findUnique({ where: { token }, include: { user: true } });
+    const storedToken = await prisma.refreshToken.findUnique({
+      where: { token },
+      include: { user: true },
+    });
     if (!storedToken || storedToken.expiresAt < new Date())
       return res.status(401).json({ success: false, message: "Invalid or expired refresh token" });
 
@@ -187,8 +229,11 @@ const refreshAccessToken = async (req, res, next) => {
 
     await prisma.refreshToken.create({ data: { token: newRefreshToken, userId: user.id, expiresAt } });
     setRefreshTokenCookie(res, newRefreshToken);
+
     res.json({ success: true, data: { accessToken: newAccessToken } });
-  } catch (error) { next(error); }
+  } catch (error) {
+    next(error);
+  }
 };
 
 const logout = async (req, res, next) => {
@@ -197,9 +242,11 @@ const logout = async (req, res, next) => {
     const refreshToken = req.cookies?.refreshToken;
 
     if (accessToken) {
-      const decoded = jwt.decode(accessToken);
-      const ttl = decoded?.exp - Math.floor(Date.now() / 1000);
-      if (ttl > 0) await redisClient.setEx(`blacklist:${accessToken}`, ttl, "revoked");
+      try {
+        const decoded = jwt.decode(accessToken);
+        const ttl = decoded?.exp - Math.floor(Date.now() / 1000);
+        if (ttl > 0) await redisClient.setEx(`blacklist:${accessToken}`, ttl, "revoked");
+      } catch {}
     }
 
     if (refreshToken) {
@@ -212,18 +259,25 @@ const logout = async (req, res, next) => {
 
     res.clearCookie("refreshToken");
     res.json({ success: true, message: "Logged out successfully" });
-  } catch (error) { next(error); }
+  } catch (error) {
+    next(error);
+  }
 };
 
 const getMe = async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      select: { id: true, email: true, name: true, role: true, avatar: true, isEmailVerified: true, createdAt: true },
+      select: {
+        id: true, email: true, name: true, role: true,
+        avatar: true, isEmailVerified: true, createdAt: true,
+      },
     });
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
     res.json({ success: true, data: user });
-  } catch (error) { next(error); }
+  } catch (error) {
+    next(error);
+  }
 };
 
 const getActivity = async (req, res, next) => {
@@ -234,37 +288,13 @@ const getActivity = async (req, res, next) => {
       take: 20,
     });
     res.json({ success: true, data: logs });
-  } catch (error) { next(error); }
+  } catch (error) {
+    next(error);
+  }
 };
 
-const googleLogin = async (req, res, next) => {
-  try {
-    const { idToken } = req.body;
-    if (!idToken) return res.status(400).json({ success: false, message: "Google ID token required" });
-
-    const ticket = await googleClient.verifyIdToken({ idToken, audience: process.env.GOOGLE_CLIENT_ID });
-    const { sub: googleId, email, name, picture } = ticket.getPayload();
-
-    let user = await prisma.user.findFirst({ where: { OR: [{ googleId }, { email }] } });
-    if (!user) {
-      user = await prisma.user.create({ data: { email, name, googleId, avatar: picture, isEmailVerified: true } });
-    } else if (!user.googleId) {
-      user = await prisma.user.update({ where: { id: user.id }, data: { googleId, avatar: picture } });
-    }
-
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-    await prisma.refreshToken.create({ data: { token: refreshToken, userId: user.id, expiresAt } });
-    await logActivity(user.id, "LOGIN", req);
-    setRefreshTokenCookie(res, refreshToken);
-
-    res.json({
-      success: true,
-      data: { accessToken, user: { id: user.id, email: user.email, name: user.name, role: user.role, avatar: user.avatar } },
-    });
-  } catch (error) { next(error); }
+module.exports = {
+  register, login, verifyEmailOTP, verify2FA, resendOTP,
+  forgotPassword, resetPassword, refreshAccessToken, logout,
+  getMe, getActivity,
 };
-
-module.exports = { register, login, verifyEmailOTP, verify2FA, resendOTP, forgotPassword, resetPassword, refreshAccessToken, logout, getMe, getActivity, googleLogin };

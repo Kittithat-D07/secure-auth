@@ -10,20 +10,19 @@ router.use(checkRole("ADMIN"));
  * @swagger
  * tags:
  *   name: Admin
- *   description: Admin only endpoints
+ *   description: Admin only endpoints (requires ADMIN role)
  */
 
 /**
  * @swagger
  * /admin/stats:
  *   get:
- *     summary: Dashboard stats
+ *     summary: Get dashboard statistics
  *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
  *     responses:
- *       200:
- *         description: Stats data
+ *       200: { description: Stats }
  */
 router.get("/stats", getStats);
 
@@ -31,13 +30,22 @@ router.get("/stats", getStats);
  * @swagger
  * /admin/users:
  *   get:
- *     summary: List all users
+ *     summary: Get all users (paginated)
  *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 20 }
+ *       - in: query
+ *         name: search
+ *         schema: { type: string }
  *     responses:
- *       200:
- *         description: User list
+ *       200: { description: User list }
  */
 router.get("/users", getAllUsers);
 
@@ -53,11 +61,17 @@ router.get("/users", getAllUsers);
  *       - in: path
  *         name: id
  *         required: true
- *         schema:
- *           type: string
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               role: { type: string, enum: [USER, ADMIN] }
  *     responses:
- *       200:
- *         description: Role updated
+ *       200: { description: Role updated }
  */
 router.patch("/users/:id/role", updateUserRole);
 
@@ -65,7 +79,7 @@ router.patch("/users/:id/role", updateUserRole);
  * @swagger
  * /admin/users/{id}/status:
  *   patch:
- *     summary: Toggle user status
+ *     summary: Enable or disable user account
  *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
@@ -73,11 +87,9 @@ router.patch("/users/:id/role", updateUserRole);
  *       - in: path
  *         name: id
  *         required: true
- *         schema:
- *           type: string
+ *         schema: { type: string }
  *     responses:
- *       200:
- *         description: Status toggled
+ *       200: { description: Status toggled }
  */
 router.patch("/users/:id/status", toggleUserStatus);
 

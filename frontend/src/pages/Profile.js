@@ -2,91 +2,96 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
-import "./Dashboard.css";
-import "./Profile.css";
 
 export default function Profile() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState(user?.name || "");
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [cur, setCur] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [conPw, setConPw] = useState("");
   const [profileMsg, setProfileMsg] = useState(null);
-  const [passwordMsg, setPasswordMsg] = useState(null);
-  const [loadingProfile, setLoadingProfile] = useState(false);
-  const [loadingPassword, setLoadingPassword] = useState(false);
+  const [pwMsg, setPwMsg] = useState(null);
+  const [loadP, setLoadP] = useState(false);
+  const [loadPw, setLoadPw] = useState(false);
 
-  const handleUpdateProfile = async (e) => {
-    e.preventDefault(); setLoadingProfile(true); setProfileMsg(null);
+  const updateProfile = async (e) => {
+    e.preventDefault(); setLoadP(true); setProfileMsg(null);
     try {
       await api.patch("/users/profile", { name });
-      setProfileMsg({ type: "success", text: "Profile updated successfully!" });
+      setProfileMsg({ ok: true, text: "Profile updated successfully!" });
     } catch (err) {
-      setProfileMsg({ type: "error", text: err.response?.data?.message || "Failed to update" });
-    } finally { setLoadingProfile(false); }
+      setProfileMsg({ ok: false, text: err.response?.data?.message || "Failed to update" });
+    } finally { setLoadP(false); }
   };
 
-  const handleChangePassword = async (e) => {
+  const changePassword = async (e) => {
     e.preventDefault();
-    if (newPassword !== confirmPassword) return setPasswordMsg({ type: "error", text: "Passwords do not match" });
-    setLoadingPassword(true); setPasswordMsg(null);
+    if (newPw !== conPw) return setPwMsg({ ok: false, text: "Passwords do not match" });
+    setLoadPw(true); setPwMsg(null);
     try {
-      await api.patch("/users/change-password", { currentPassword, newPassword });
-      setPasswordMsg({ type: "success", text: "Password changed successfully!" });
-      setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
+      await api.patch("/users/change-password", { currentPassword: cur, newPassword: newPw });
+      setPwMsg({ ok: true, text: "Password changed successfully!" });
+      setCur(""); setNewPw(""); setConPw("");
     } catch (err) {
-      setPasswordMsg({ type: "error", text: err.response?.data?.message || "Failed to change password" });
-    } finally { setLoadingPassword(false); }
+      setPwMsg({ ok: false, text: err.response?.data?.message || "Failed to change password" });
+    } finally { setLoadPw(false); }
   };
 
   return (
-    <div className="dash-container">
-      <div className="dash-bg" />
-      <nav className="dash-nav">
-        <div className="dash-nav-logo">⬡ SecureAuth</div>
-        <div className="dash-nav-right">
-          <button className="nav-admin-btn" onClick={() => navigate("/dashboard")}>Dashboard</button>
-          {user?.role === "ADMIN" && <button className="nav-admin-btn" onClick={() => navigate("/admin")}>Admin Panel</button>}
+    <div className="app-wrap">
+      <div className="app-bg" />
+      <nav className="navbar">
+        <div className="navbar-logo">⬡ SecureAuth</div>
+        <div className="navbar-right">
+          <button className="btn-ghost" onClick={() => navigate("/dashboard")}>Dashboard</button>
+          {user?.role === "ADMIN" && <button className="btn-ghost" onClick={() => navigate("/admin")}>👑 Admin</button>}
           <div className="nav-avatar">{user?.name?.[0]?.toUpperCase()}</div>
-          <button className="nav-logout" onClick={async () => { await logout(); navigate("/login"); }}>Sign out</button>
+          <button className="btn-danger" onClick={async () => { await logout(); navigate("/login"); }}>Sign out</button>
         </div>
       </nav>
-      <main className="dash-main">
-        <div className="dash-hero">
-          <h1>My <span>Profile</span></h1>
-          <p>Manage your account settings</p>
+      <main className="page-content">
+        <div className="page-hero">
+          <h1 className="page-title">My <span>Profile</span></h1>
+          <p className="page-sub">Manage your account settings</p>
         </div>
-        <div className="profile-grid">
-          <div className="profile-card">
-            <h2>Personal Info</h2>
-            <div className="profile-avatar-section">
-              <div className="profile-avatar">{user?.name?.[0]?.toUpperCase()}</div>
+        <div className="grid-2">
+          {/* Profile Info */}
+          <div className="card">
+            <div className="card-title">Personal Information</div>
+            <div className="user-chip">
+              <div className="user-chip-av">{user?.name?.[0]?.toUpperCase()}</div>
               <div>
-                <div className="profile-name">{user?.name}</div>
-                <div className="profile-email">{user?.email}</div>
-                <span className={`role-chip ${user?.role?.toLowerCase()}`}>{user?.role}</span>
+                <div className="user-chip-name">{user?.name}</div>
+                <div className="user-chip-email">{user?.email}</div>
+                <span className={`role-badge ${user?.role === "ADMIN" ? "role-admin" : "role-user"}`}>{user?.role}</span>
               </div>
             </div>
-            {profileMsg && <div className={`profile-msg ${profileMsg.type}`}>{profileMsg.text}</div>}
-            <form onSubmit={handleUpdateProfile} className="profile-form">
-              <div className="form-group-p"><label>Display Name</label><input value={name} onChange={(e) => setName(e.target.value)} required /></div>
-              <div className="form-group-p"><label>Email</label><input value={user?.email} disabled style={{ opacity: 0.5, cursor: "not-allowed" }} /></div>
-              <button type="submit" className="profile-btn" disabled={loadingProfile}>{loadingProfile ? "Saving..." : "Save Changes"}</button>
+            {profileMsg && <div className={`msg ${profileMsg.ok ? "msg-ok" : "msg-err"}`}>{profileMsg.ok ? "✅" : "⚠️"} {profileMsg.text}</div>}
+            <form onSubmit={updateProfile}>
+              <div className="profile-field"><label>Display Name</label><input value={name} onChange={(e) => setName(e.target.value)} required /></div>
+              <div className="profile-field"><label>Email</label><input value={user?.email} disabled /></div>
+              <button type="submit" className="btn-primary" disabled={loadP} style={{ marginTop: 8 }}>
+                {loadP ? <><span className="spinner" /> Saving...</> : "Save Changes"}
+              </button>
             </form>
           </div>
-          <div className="profile-card">
-            <h2>Change Password</h2>
-            {user?.googleId ? (
-              <p style={{ color: "#64748b", fontSize: "14px" }}>Your account uses Google login — no password to change.</p>
+
+          {/* Change Password */}
+          <div className="card">
+            <div className="card-title">Change Password</div>
+            {user?.googleId && !user?.password ? (
+              <p style={{ color: "#64748b", fontSize: 14, lineHeight: 1.6 }}>Your account uses Google login. No password to change.</p>
             ) : (
               <>
-                {passwordMsg && <div className={`profile-msg ${passwordMsg.type}`}>{passwordMsg.text}</div>}
-                <form onSubmit={handleChangePassword} className="profile-form">
-                  <div className="form-group-p"><label>Current Password</label><input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="••••••••" required /></div>
-                  <div className="form-group-p"><label>New Password</label><input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Min. 6 characters" required /></div>
-                  <div className="form-group-p"><label>Confirm New Password</label><input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Re-enter new password" required /></div>
-                  <button type="submit" className="profile-btn" disabled={loadingPassword}>{loadingPassword ? "Changing..." : "Change Password"}</button>
+                {pwMsg && <div className={`msg ${pwMsg.ok ? "msg-ok" : "msg-err"}`}>{pwMsg.ok ? "✅" : "⚠️"} {pwMsg.text}</div>}
+                <form onSubmit={changePassword}>
+                  <div className="profile-field"><label>Current Password</label><input type="password" value={cur} onChange={(e) => setCur(e.target.value)} placeholder="••••••••" required /></div>
+                  <div className="profile-field"><label>New Password</label><input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="Min. 6 characters" required /></div>
+                  <div className="profile-field"><label>Confirm New Password</label><input type="password" value={conPw} onChange={(e) => setConPw(e.target.value)} placeholder="Re-enter new password" required /></div>
+                  <button type="submit" className="btn-primary" disabled={loadPw} style={{ marginTop: 8 }}>
+                    {loadPw ? <><span className="spinner" /> Changing...</> : "Change Password"}
+                  </button>
                 </form>
               </>
             )}

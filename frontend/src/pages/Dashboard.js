@@ -1,6 +1,5 @@
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import "./Dashboard.css";
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -8,54 +7,70 @@ export default function Dashboard() {
 
   const handleLogout = async () => { await logout(); navigate("/login"); };
 
+  const features = [
+    { icon: "🔑", title: "JWT Access Token", desc: "Short-lived token (15 min), sent via Authorization header on every request" },
+    { icon: "🔄", title: "Refresh Token Rotation", desc: "Old tokens deleted immediately on refresh — reuse detection built in" },
+    { icon: "📧", title: "Email OTP 2FA", desc: "Every login requires a 6-digit OTP sent to your real email inbox" },
+    { icon: "🔒", title: "Token Blacklist", desc: "Logout immediately revokes access token via Redis — no replay attacks" },
+    { icon: "👑", title: "Role-Based Access", desc: "USER / ADMIN roles enforced at middleware level on every protected route" },
+    { icon: "🛡️", title: "Rate Limiting", desc: "10 attempts per 15 minutes per IP — brute force protection via Redis" },
+  ];
+
   return (
-    <div className="dash-container">
-      <div className="dash-bg" />
-      <nav className="dash-nav">
-        <div className="dash-nav-logo">⬡ SecureAuth</div>
-        <div className="dash-nav-right">
-          {user?.role === "ADMIN" && <button className="nav-admin-btn" onClick={() => navigate("/admin")}>Admin Panel</button>}
-          <button className="nav-admin-btn" onClick={() => navigate("/profile")}>Profile</button>
-          <button className="nav-admin-btn" onClick={() => navigate("/activity")}>Activity</button>
+    <div className="app-wrap">
+      <div className="app-bg" />
+      <nav className="navbar">
+        <div className="navbar-logo">⬡ SecureAuth</div>
+        <div className="navbar-right">
+          {user?.role === "ADMIN" && <button className="btn-ghost" onClick={() => navigate("/admin")}>👑 Admin</button>}
+          <button className="btn-ghost" onClick={() => navigate("/profile")}>Profile</button>
+          <button className="btn-ghost" onClick={() => navigate("/activity")}>Activity</button>
           <div className="nav-avatar">{user?.name?.[0]?.toUpperCase()}</div>
-          <button className="nav-logout" onClick={handleLogout}>Sign out</button>
+          <button className="btn-danger" onClick={handleLogout}>Sign out</button>
         </div>
       </nav>
-      <main className="dash-main">
-        <div className="dash-hero">
-          <div className="dash-badge">{user?.role === "ADMIN" ? "👑 Administrator" : "👤 User"}</div>
-          <h1>Hello, <span>{user?.name}</span></h1>
-          <p>You're successfully authenticated</p>
+      <main className="page-content">
+        <div className="page-hero">
+          <div className="page-badge">{user?.role === "ADMIN" ? "👑 Administrator" : "👤 User"}</div>
+          <h1 className="page-title">Hello, <span>{user?.name}</span> 👋</h1>
+          <p className="page-sub">You're securely authenticated via Email OTP 2FA</p>
         </div>
-        <div className="dash-cards">
-          <div className="dash-card" onClick={() => navigate("/profile")} style={{ cursor: "pointer" }}>
-            <div className="card-icon">👤</div>
-            <div className="card-label">Profile</div>
-            <div className="card-value">Edit your info</div>
+
+        <div className="grid-4" style={{ marginBottom: 32 }}>
+          <div className="stat-card" style={{ cursor: "pointer" }} onClick={() => navigate("/profile")}>
+            <div className="stat-icon">👤</div>
+            <div className="stat-label">Account</div>
+            <div style={{ color: "#e2e8f0", fontWeight: 600, marginTop: 4 }}>Edit Profile</div>
           </div>
-          <div className="dash-card" onClick={() => navigate("/activity")} style={{ cursor: "pointer" }}>
-            <div className="card-icon">📋</div>
-            <div className="card-label">Activity Log</div>
-            <div className="card-value">View login history</div>
+          <div className="stat-card" style={{ cursor: "pointer" }} onClick={() => navigate("/activity")}>
+            <div className="stat-icon">📋</div>
+            <div className="stat-label">Activity</div>
+            <div style={{ color: "#e2e8f0", fontWeight: 600, marginTop: 4 }}>View Logs</div>
           </div>
-          <div className="dash-card">
-            <div className="card-icon">🛡️</div>
-            <div className="card-label">Role</div>
-            <div className="card-value">{user?.role}</div>
+          <div className="stat-card">
+            <div className="stat-icon">✅</div>
+            <div className="stat-label">2FA Status</div>
+            <div style={{ color: "#34d399", fontWeight: 600, marginTop: 4 }}>Active</div>
           </div>
-          <div className="dash-card">
-            <div className="card-icon">✅</div>
-            <div className="card-label">2FA Status</div>
-            <div className="card-value">Email OTP Active</div>
+          <div className="stat-card">
+            <div className="stat-icon">🛡️</div>
+            <div className="stat-label">Role</div>
+            <div style={{ color: "#818cf8", fontWeight: 600, marginTop: 4 }}>{user?.role}</div>
           </div>
         </div>
-        <div className="dash-info">
-          <h2>How this auth system works</h2>
-          <div className="info-grid">
-            <div className="info-item"><span className="info-num">01</span><div><h3>JWT Access Token</h3><p>Short-lived token (15 min) sent in Authorization header</p></div></div>
-            <div className="info-item"><span className="info-num">02</span><div><h3>Refresh Token Rotation</h3><p>New token pair on each refresh, old tokens immediately invalidated</p></div></div>
-            <div className="info-item"><span className="info-num">03</span><div><h3>Email OTP 2FA</h3><p>Every login requires a 6-digit OTP sent to your email</p></div></div>
-            <div className="info-item"><span className="info-num">04</span><div><h3>Rate Limiting</h3><p>Login endpoint limited to 10 attempts per 15 minutes per IP</p></div></div>
+
+        <div className="card">
+          <div className="card-title">Security Features Implemented</div>
+          <div className="grid-2" style={{ gap: 16 }}>
+            {features.map((f, i) => (
+              <div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start", padding: "16px", background: "rgba(255,255,255,0.02)", borderRadius: 14 }}>
+                <div style={{ fontSize: 24, flexShrink: 0 }}>{f.icon}</div>
+                <div>
+                  <div style={{ color: "#e2e8f0", fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{f.title}</div>
+                  <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>{f.desc}</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </main>

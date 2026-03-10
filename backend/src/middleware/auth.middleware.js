@@ -3,12 +3,12 @@ const redisClient = require("../config/redis");
 
 const verifyToken = async (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
-  if (!token) return res.status(401).json({ success: false, message: "Access token required" });
-
+  if (!token)
+    return res.status(401).json({ success: false, message: "Access token required" });
   try {
     const blacklisted = await redisClient.get(`blacklist:${token}`);
-    if (blacklisted) return res.status(401).json({ success: false, message: "Token has been revoked" });
-
+    if (blacklisted)
+      return res.status(401).json({ success: false, message: "Token has been revoked" });
     const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
     req.user = decoded;
     next();
