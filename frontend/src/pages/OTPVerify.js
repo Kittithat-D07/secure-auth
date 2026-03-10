@@ -115,7 +115,7 @@ export default function OTPVerify() {
           }}>
             <div>
               <div style={{ color: "#93c5fd", fontSize: 11, fontWeight: 700, marginBottom: 4, letterSpacing: 1 }}>
-                🧪 DEV MODE — YOUR OTP
+                YOUR OTP
               </div>
               <div style={{ color: "#fff", fontSize: 24, fontWeight: 800, letterSpacing: 8, fontFamily: "monospace" }}>
                 {devOTP}
