@@ -1,5 +1,14 @@
-const { Resend } = require("resend");
-const resend = new Resend(process.env.RESEND_API_KEY);
+const nodemailer = require("nodemailer");
+
+const transporter = nodemailer.createTransport({
+  host: "smtp-relay.brevo.com",
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.BREVO_USER,
+    pass: process.env.BREVO_SMTP_KEY,
+  },
+});
 
 const sendOTPEmail = async (to, name, code, type = "verify") => {
   const isVerify = type === "verify";
@@ -7,8 +16,8 @@ const sendOTPEmail = async (to, name, code, type = "verify") => {
   const title = isVerify ? "Verify Your Email" : "Two-Factor Authentication";
   const desc = isVerify ? "Enter this code to verify your email address." : "Enter this code to complete your login.";
 
-  await resend.emails.send({
-    from: "SecureAuth <onboarding@resend.dev>",
+  await transporter.sendMail({
+    from: `"SecureAuth" <a47a09001@smtp-brevo.com>`,
     to,
     subject,
     html: `
@@ -28,8 +37,8 @@ const sendOTPEmail = async (to, name, code, type = "verify") => {
 };
 
 const sendResetPasswordEmail = async (to, name, resetUrl) => {
-  await resend.emails.send({
-    from: "SecureAuth <onboarding@resend.dev>",
+  await transporter.sendMail({
+    from: `"SecureAuth" <a47a09001@smtp-brevo.com>`,
     to,
     subject: "Reset your password — SecureAuth",
     html: `
