@@ -1,9 +1,9 @@
 const Brevo = require('@getbrevo/brevo');
 
-// แก้ไขตรงนี้: การเรียกใช้เวอร์ชันล่าสุดต้องเรียกผ่าน .TransactionalEmailsApi()
-let apiInstance = new Brevo.TransactionalEmailsApi();
+// แก้ไขการสร้าง instance ให้ถูกต้องตาม SDK เวอร์ชันปัจจุบัน
+const apiInstance = new Brevo.TransactionalEmailsApi();
 
-// ตั้งค่า API Key
+// วิธีการเซต API Key ที่ถูกต้อง
 apiInstance.setApiKey(Brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
 
 const sendOTPEmail = async (to, name, code, type = "verify") => {
@@ -14,7 +14,8 @@ const sendOTPEmail = async (to, name, code, type = "verify") => {
     ? "Enter this code to verify your email address. Valid for 10 minutes." 
     : "Enter this code to complete your login. Valid for 10 minutes.";
 
-  let sendSmtpEmail = new Brevo.SendSmtpEmail();
+  const sendSmtpEmail = new Brevo.SendSmtpEmail();
+
   sendSmtpEmail.subject = subject;
   sendSmtpEmail.sender = { "name": "SecureAuth", "email": "dew201102@gmail.com" }; // เมลที่ใช้สมัคร Brevo
   sendSmtpEmail.to = [{ "email": to, "name": name }];
@@ -26,13 +27,13 @@ const sendOTPEmail = async (to, name, code, type = "verify") => {
     <body style="margin:0;padding:0;background:#0f0f0f;font-family:sans-serif">
       <div style="background:#0f0f0f;padding:40px 20px;text-align:center">
         <div style="background:#1a1a2e;border-radius:20px;padding:40px;display:inline-block;border:1px solid #2a2a4a;max-width:480px">
-          <h2 style="color:#e2e8f0">${title}</h2>
+          <h2 style="color:#e2e8f0;margin-top:0">${title}</h2>
           <p style="color:#64748b">Hi <strong>${name}</strong>,</p>
           <p style="color:#64748b">${desc}</p>
           <div style="background:#0f172a;border:2px solid #4f46e5;padding:20px;border-radius:16px;margin:20px 0">
             <span style="font-size:32px;letter-spacing:10px;color:#818cf8;font-weight:bold">${code}</span>
           </div>
-          <p style="color:#475569;font-size:12px">© 2026 SecureAuth</p>
+          <p style="color:#475569;font-size:12px">© 2026 SecureAuth — Portfolio Project</p>
         </div>
       </div>
     </body>
@@ -40,32 +41,37 @@ const sendOTPEmail = async (to, name, code, type = "verify") => {
   `;
 
   try {
-    await apiInstance.sendTransacEmail(sendSmtpEmail);
-    console.log(`✅ Brevo: OTP Email sent to ${to}`);
+    const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.log(`✅ Brevo: Email sent successfully. MessageId: ${data.body.messageId}`);
   } catch (error) {
-    console.error("❌ Brevo Error:", error.response ? error.response.body : error.message);
+    // การดึง error message จาก Brevo SDK ต้องใช้ .response.body
+    console.error("❌ Brevo Error:", error.response ? JSON.stringify(error.response.body) : error.message);
   }
 };
 
 const sendResetPasswordEmail = async (to, name, resetUrl) => {
-  let sendSmtpEmail = new Brevo.SendSmtpEmail();
+  const sendSmtpEmail = new Brevo.SendSmtpEmail();
+  
   sendSmtpEmail.subject = "🔑 Reset your password — SecureAuth";
   sendSmtpEmail.sender = { "name": "SecureAuth", "email": "dew201102@gmail.com" };
   sendSmtpEmail.to = [{ "email": to, "name": name }];
   
   sendSmtpEmail.htmlContent = `
-    <div style="text-align:center;padding:40px">
+    <div style="text-align:center;padding:40px;background:#0f0f0f;color:white;">
       <h2>Reset Your Password</h2>
       <p>Hi ${name}, click the link below to reset your password:</p>
-      <a href="${resetUrl}" style="background:#4f46e5;color:white;padding:12px 24px;text-decoration:none;border-radius:8px">Reset Password</a>
+      <div style="margin: 30px 0;">
+        <a href="${resetUrl}" style="background:#4f46e5;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;font-weight:bold;">Reset Password</a>
+      </div>
+      <p style="font-size:12px;color:#64748b;">If you didn't request this, please ignore this email.</p>
     </div>
   `;
 
   try {
-    await apiInstance.sendTransacEmail(sendSmtpEmail);
-    console.log(`✅ Brevo: Reset email sent to ${to}`);
+    const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.log(`✅ Brevo: Reset email sent. MessageId: ${data.body.messageId}`);
   } catch (error) {
-    console.error("❌ Brevo Error:", error.response ? error.response.body : error.message);
+    console.error("❌ Brevo Error:", error.response ? JSON.stringify(error.response.body) : error.message);
   }
 };
 
