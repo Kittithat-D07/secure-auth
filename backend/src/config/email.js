@@ -1,9 +1,9 @@
 const Brevo = require('@getbrevo/brevo');
 
-// แก้การเรียก Instance ให้ดึงมาจาก Property .TransactionalEmailsApi
+// แก้การเรียก Instance ใหม่ตาม SDK v2.0.0+
 const apiInstance = new Brevo.TransactionalEmailsApi();
 
-// วิธีการตั้งค่า API Key ที่ถูกต้องสำหรับเวอร์ชันปัจจุบัน
+// วิธีเซต API Key ที่ถูกต้อง
 apiInstance.setApiKey(Brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
 
 const sendOTPEmail = async (to, name, code, type = "verify") => {
@@ -42,16 +42,14 @@ const sendOTPEmail = async (to, name, code, type = "verify") => {
 
   try {
     const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
-    console.log(`✅ Brevo: Email sent successfully! MessageId: ${data.body.messageId}`);
+    console.log(`✅ Brevo: Email sent! MessageId: ${data.body.messageId}`);
   } catch (error) {
-    const errorMsg = error.response ? JSON.stringify(error.response.body) : error.message;
-    console.error("❌ Brevo Error:", errorMsg);
+    console.error("❌ Brevo Error:", error.response ? JSON.stringify(error.response.body) : error.message);
   }
 };
 
 const sendResetPasswordEmail = async (to, name, resetUrl) => {
   const sendSmtpEmail = new Brevo.SendSmtpEmail();
-  
   sendSmtpEmail.subject = "🔑 Reset your password — SecureAuth";
   sendSmtpEmail.sender = { "name": "SecureAuth", "email": "dew201102@gmail.com" };
   sendSmtpEmail.to = [{ "email": to, "name": name }];
@@ -63,16 +61,14 @@ const sendResetPasswordEmail = async (to, name, resetUrl) => {
       <div style="margin: 30px 0;">
         <a href="${resetUrl}" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);color:white;padding:14px 28px;text-decoration:none;border-radius:10px;font-weight:bold;display:inline-block;">Reset Password</a>
       </div>
-      <p style="font-size:12px;color:#64748b;">If you didn't request this, please ignore.</p>
     </div>
   `;
 
   try {
     const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
-    console.log(`✅ Brevo: Reset email sent! MessageId: ${data.body.messageId}`);
+    console.log(`✅ Brevo: Reset email sent!`);
   } catch (error) {
-    const errorMsg = error.response ? JSON.stringify(error.response.body) : error.message;
-    console.error("❌ Brevo Reset Error:", errorMsg);
+    console.error("❌ Brevo Reset Error:", error.message);
   }
 };
 
