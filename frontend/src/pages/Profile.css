@@ -1,0 +1,32 @@
+.profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; margin-bottom: 32px; }
+.profile-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07); border-radius: 20px; padding: 32px; }
+.profile-card h2 { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: #e2e8f0; margin-bottom: 24px; }
+.profile-avatar-section { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; padding: 16px; background: rgba(255,255,255,0.03); border-radius: 14px; }
+.profile-avatar { width: 56px; height: 56px; background: linear-gradient(135deg, #4f6ef7, #7c3aed); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; flex-shrink: 0; }
+.profile-name { color: #f1f5f9; font-weight: 600; font-size: 16px; }
+.profile-email { color: #64748b; font-size: 13px; margin: 2px 0 8px; }
+.role-chip { padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+.role-chip.admin { background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.3); color: #a78bfa; }
+.role-chip.user { background: rgba(79,110,247,0.1); border: 1px solid rgba(79,110,247,0.2); color: #4f6ef7; }
+.profile-msg { padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; }
+.profile-msg.success { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #34d399; }
+.profile-msg.error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: #f87171; }
+.profile-form { display: flex; flex-direction: column; gap: 16px; }
+.form-group-p { display: flex; flex-direction: column; gap: 6px; }
+.form-group-p label { color: #94a3b8; font-size: 12px; font-weight: 500; letter-spacing: 0.5px; }
+.form-group-p input { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 11px 14px; color: #f1f5f9; font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; transition: all 0.2s; }
+.form-group-p input:focus { border-color: #4f6ef7; background: rgba(79,110,247,0.08); }
+.profile-btn { background: linear-gradient(135deg, #4f6ef7, #7c3aed); color: white; border: none; border-radius: 10px; padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: 'Syne', sans-serif; margin-top: 4px; }
+.profile-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+.profile-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.activity-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07); border-radius: 20px; overflow: hidden; }
+.activity-list { display: flex; flex-direction: column; }
+.activity-item { display: flex; align-items: center; gap: 16px; padding: 18px 28px; border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.2s; }
+.activity-item:last-child { border-bottom: none; }
+.activity-item:hover { background: rgba(255,255,255,0.02); }
+.activity-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.activity-info { flex: 1; }
+.activity-action { color: #e2e8f0; font-weight: 500; font-size: 14px; }
+.activity-meta { display: flex; gap: 12px; margin-top: 3px; }
+.activity-meta span { color: #475569; font-size: 12px; }
+.activity-time { color: #64748b; font-size: 12px; white-space: nowrap; }
