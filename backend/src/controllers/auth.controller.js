@@ -43,11 +43,18 @@ const logActivity = async (userId, action, req) => {
 };
 
 const createAndSendOTP = async (email, name, type) => {
+  // 1. ลบ OTP เก่า
   await prisma.oTP.deleteMany({ where: { email, type } });
+  
+  // 2. สร้าง OTP ใหม่ลง Database
   const code = generateOTP();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
   await prisma.oTP.create({ data: { email, code, type, expiresAt } });
-  await sendOTPEmail(email, name, code, type);
+  
+  // 3. ส่ง Email แบบ Non-blocking (เอา await ออกเพื่อให้ API ตอบกลับทันที)
+  sendOTPEmail(email, name, code, type).catch(err => 
+    console.error("📧 Background Email Error:", err.message)
+  );
 };
 
 // ── controllers ──────────────────────────────────────────────────────────────
@@ -65,6 +72,7 @@ const register = async (req, res, next) => {
       select: { id: true, email: true, name: true },
     });
 
+    // เรียกฟังก์ชันที่แก้ใหม่ (ไม่รอส่งเมลเสร็จ)
     await createAndSendOTP(email, name, "verify");
     await logActivity(user.id, "REGISTER", req);
 
@@ -99,6 +107,7 @@ const resendOTP = async (req, res, next) => {
     const { email, type } = req.body;
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
+    
     await createAndSendOTP(email, user.name, type);
     res.json({ success: true, message: "OTP resent successfully" });
   } catch (error) {
@@ -165,7 +174,6 @@ const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
     const user = await prisma.user.findUnique({ where: { email } });
-    // Always return success to prevent email enumeration
     if (!user)
       return res.json({ success: true, message: "If this email exists, a reset link has been sent." });
 
@@ -174,7 +182,11 @@ const forgotPassword = async (req, res, next) => {
     const emailToken = await prisma.emailToken.create({ data: { email, type: "reset", expiresAt } });
 
     const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${emailToken.token}`;
-    await sendResetPasswordEmail(email, user.name, resetUrl);
+    
+    // ส่ง Reset Email แบบ Non-blocking เช่นกัน
+    sendResetPasswordEmail(email, user.name, resetUrl).catch(err => 
+      console.error("📧 Password Reset Email Error:", err.message)
+    );
 
     res.json({ success: true, message: "If this email exists, a reset link has been sent." });
   } catch (error) {
