@@ -15,7 +15,6 @@ Featuring JWT, Email OTP 2FA, Role-based Access Control, Redis token blacklist, 
 | | URL |
 |---|---|
 | 🖥️ Frontend | https://secure-aut.netlify.app |
-| ⚙️ Backend API | https://secure-auth-production-18f9.up.railway.app |
 | 📚 Swagger Docs | https://secure-auth-production-18f9.up.railway.app/api/docs |
 
 > **⚠️ DEV MODE:** OTP code and reset link are displayed directly on the frontend for demo purposes.
